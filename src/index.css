@@ -1,0 +1,111 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --bg-primary: #fcfbf9;
+    --bg-secondary: #f4f2ec;
+    --bg-card: #ffffff;
+    --border-subtle: #e5e3dc;
+    --text-primary: #18181b;
+    --text-secondary: #52525b;
+    --text-muted: #71717a;
+  }
+
+  .dark {
+    --bg-primary: #0c0d11;
+    --bg-secondary: #13141b;
+    --bg-card: #181922;
+    --border-subtle: #242633;
+    --text-primary: #f4f4f5;
+    --text-secondary: #a1a1aa;
+    --text-muted: #71717a;
+  }
+
+  body {
+    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+  }
+}
+
+/* Custom minimal scrollbar for reader and sidebar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(150, 150, 150, 0.2);
+  border-radius: 9999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(150, 150, 150, 0.4);
+}
+
+/* Monospace font styling */
+.font-mono-num {
+  font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Subtle selection */
+::selection {
+  background-color: #38bdf840;
+}
+
+/* Reader canvas shadows & rendering */
+.pdf-page-container {
+  will-change: transform;
+  transition: box-shadow 0.2s ease;
+}
+
+.pdf-canvas {
+  display: block;
+  image-rendering: -webkit-optimize-contrast;
+  image-rendering: crisp-edges;
+}
+
+/* Text layer styling for text selection & search */
+.textLayer {
+  position: absolute;
+  text-align: initial;
+  left: 0;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  overflow: hidden;
+  opacity: 1;
+  line-height: 1;
+  text-size-adjust: none;
+  forced-color-adjust: none;
+  transform-origin: 0 0;
+  z-index: 2;
+}
+
+.textLayer span,
+.textLayer br {
+  color: transparent;
+  position: absolute;
+  white-space: pre;
+  cursor: text;
+  transform-origin: 0% 0%;
+}
+
+.textLayer ::selection {
+  background: rgba(0, 102, 255, 0.25);
+  color: transparent;
+}
+
+.textLayer .highlight {
+  background-color: rgba(250, 204, 21, 0.45);
+  border-radius: 2px;
+}
+
+.textLayer .highlight.selected {
+  background-color: rgba(245, 158, 11, 0.7);
+}
