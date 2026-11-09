@@ -170,3 +170,4 @@ export const UploadZone: React.FC<UploadZoneProps> = ({ onDocumentOpened }) => {
     </div>
   );
 };
+

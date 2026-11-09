@@ -163,3 +163,4 @@ describe('PDFProof Report Generation and Tamper Detection', () => {
     expect(magic).toBe('%PDF-');
   });
 });
+

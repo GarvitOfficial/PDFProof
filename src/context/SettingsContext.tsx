@@ -127,3 +127,4 @@ export function useSettings(): SettingsContextType {
   if (!ctx) throw new Error('useSettings must be used within SettingsProvider');
   return ctx;
 }
+

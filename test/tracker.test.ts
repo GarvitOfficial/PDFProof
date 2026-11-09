@@ -1,4 +1,5 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
+import { ReadingTracker } from '../src/services/tracker';
 
 describe('Reading Tracker Dwell Apportionment Algorithm', () => {
   it('apportions incremental delta time strictly proportional to intersection ratios', () => {
@@ -38,5 +39,40 @@ describe('Reading Tracker Dwell Apportionment Algorithm', () => {
     expect(calculateDepth(1000, 800, -200)).toBe(100);
     // Not yet in view
     expect(calculateDepth(1000, 800, 1200)).toBe(0);
+  });
+
+  it('correctly tracks and accumulates reading time on subsequent pages (page 2, page 3)', async () => {
+    const tracker = new ReadingTracker('doc_test_123', 4);
+
+    // Initial state: page 1 is active
+    let summary = tracker.getSummary();
+    expect(summary.pageMetrics[1].visitCount).toBeGreaterThanOrEqual(1);
+
+    // User scrolls to page 2: page 1 scrolls out (ratio 0), page 2 becomes fully visible (ratio 1.0)
+    tracker.updatePageVisibility(1, 0);
+    tracker.updatePageVisibility(2, 0.85, 90);
+
+    summary = tracker.getSummary();
+    expect(summary.pageMetrics[2].visitCount).toBe(1);
+    expect(summary.pageMetrics[2].maxScrollDepth).toBe(90);
+
+    // Wait a brief tick for tracker tick
+    await new Promise((resolve) => setTimeout(resolve, 600));
+
+    summary = tracker.getSummary();
+    // Time should now be accumulated on page 2!
+    expect(summary.pageMetrics[2].activeSeconds).toBeGreaterThan(0);
+
+    // Switch to page 3 in single page mode
+    tracker.setExplicitPage(3);
+    summary = tracker.getSummary();
+    expect(summary.pageMetrics[3].visitCount).toBe(1);
+
+    await new Promise((resolve) => setTimeout(resolve, 600));
+
+    summary = tracker.getSummary();
+    expect(summary.pageMetrics[3].activeSeconds).toBeGreaterThan(0);
+
+    tracker.destroy();
   });
 });

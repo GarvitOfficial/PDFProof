@@ -462,3 +462,4 @@ export const VerificationView: React.FC = () => {
     </div>
   );
 };
+

@@ -188,3 +188,4 @@ export async function getStorageUsageEstimate(): Promise<{ usageBytes: number; q
   }
   return { usageBytes: 0, quotaBytes: 0, percentage: 0 };
 }
+

@@ -146,3 +146,4 @@ export const ReportPreview: React.FC<ReportPreviewProps> = ({ report }) => {
     </div>
   );
 };
+

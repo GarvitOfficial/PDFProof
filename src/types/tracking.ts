@@ -35,3 +35,4 @@ export interface DocumentReadingSummary {
 }
 
 export type TrackingState = 'active' | 'idle' | 'hidden' | 'paused';
+

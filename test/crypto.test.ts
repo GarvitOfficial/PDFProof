@@ -113,3 +113,4 @@ describe('PDFProof Cryptographic Engine', () => {
     expect(bufferToBase64(fromB64)).toBe(b64);
   });
 });
+

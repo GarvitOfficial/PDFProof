@@ -130,3 +130,4 @@ A complete GitHub Actions workflow is included at `.github/workflows/deploy.yml`
 ## Privacy Pledge
 
 PDFProof collects **zero** telemetry. No server requests, no tracking beacons, no cloud storage. All documents and reading data remain inside your browser sandbox.
+

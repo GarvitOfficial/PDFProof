@@ -422,3 +422,4 @@ export async function generateReportPdf(report: SignedCompletionReport): Promise
 
   return pdfDoc.save();
 }
+

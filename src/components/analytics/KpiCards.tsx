@@ -84,3 +84,4 @@ export const KpiCards: React.FC<KpiCardsProps> = ({ summary }) => {
     </div>
   );
 };
+

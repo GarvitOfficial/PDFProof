@@ -89,3 +89,4 @@ export const TimelineView: React.FC<TimelineViewProps> = ({ sessions }) => {
     </div>
   );
 };
+

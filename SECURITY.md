@@ -65,3 +65,4 @@ For users who wish to archive or distribute reading reports securely over untrus
 
 - Stored documents, summaries, and keypairs reside in the origin's private IndexedDB database (`pdfproof_local_db`).
 - Users can view current storage consumption and completely purge all data at any moment via the **Settings** panel.
+

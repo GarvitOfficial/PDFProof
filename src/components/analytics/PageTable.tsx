@@ -209,3 +209,4 @@ export const PageTable: React.FC<PageTableProps> = ({ pageMetrics, totalPages })
     </div>
   );
 };
+

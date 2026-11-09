@@ -1,6 +1,6 @@
-import React, { createContext, useContext, useEffect, useRef, useState } from 'react';
+import React, { createContext, useContext, useEffect, useRef, useState, useCallback } from 'react';
 import { ReadingTracker } from '../services/tracker';
-import { TrackingState } from '../types/tracking';
+import { PageReadingMetrics, TrackingState } from '../types/tracking';
 import { useDocuments } from './DocumentContext';
 import { useSettings } from './SettingsContext';
 
@@ -11,6 +11,9 @@ interface TrackingContextType {
   idleSeconds: number;
   currentPageNumber: number;
   completionPercentage: number;
+  pageMetrics: Record<number, PageReadingMetrics>;
+  setExplicitPage: (pageNumber: number) => void;
+  updatePageVisibility: (pageNumber: number, visibleRatio: number, scrollDepth?: number) => void;
   updatePageIntersection: (
     pageNumber: number,
     intersectionRatio: number,
@@ -31,6 +34,7 @@ export const TrackingProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const [idleSeconds, setIdleSeconds] = useState<number>(0);
   const [currentPageNumber, setCurrentPageNumber] = useState<number>(1);
   const [completionPercentage, setCompletionPercentage] = useState<number>(0);
+  const [pageMetrics, setPageMetrics] = useState<Record<number, PageReadingMetrics>>({});
 
   const trackerRef = useRef<ReadingTracker | null>(null);
 
@@ -45,6 +49,7 @@ export const TrackingProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       setIdleSeconds(0);
       setCurrentPageNumber(1);
       setCompletionPercentage(0);
+      setPageMetrics({});
       return;
     }
 
@@ -67,6 +72,7 @@ export const TrackingProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       setIdleSeconds(state.idleSeconds);
       setCurrentPageNumber(state.currentPageNumber);
       setCompletionPercentage(state.completionPercentage);
+      setPageMetrics(state.pageMetrics);
     });
 
     return () => {
@@ -76,28 +82,47 @@ export const TrackingProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     };
   }, [currentDoc?.meta.id, settings.inactivityTimeoutSeconds]);
 
-  const updatePageIntersection = (
-    pageNumber: number,
-    intersectionRatio: number,
-    boundingClientRect: DOMRectReadOnly,
-    intersectionRect: DOMRectReadOnly
-  ) => {
+  const setExplicitPage = useCallback((pageNumber: number) => {
     if (trackerRef.current) {
-      trackerRef.current.updatePageIntersection(
-        pageNumber,
-        intersectionRatio,
-        boundingClientRect,
-        intersectionRect
-      );
+      trackerRef.current.setExplicitPage(pageNumber);
+      setCurrentPageNumber(pageNumber);
     }
-  };
+  }, []);
 
-  const flushTracking = async () => {
+  const updatePageVisibility = useCallback(
+    (pageNumber: number, visibleRatio: number, scrollDepth?: number) => {
+      if (trackerRef.current) {
+        trackerRef.current.updatePageVisibility(pageNumber, visibleRatio, scrollDepth);
+      }
+    },
+    []
+  );
+
+  const updatePageIntersection = useCallback(
+    (
+      pageNumber: number,
+      intersectionRatio: number,
+      boundingClientRect: DOMRectReadOnly,
+      intersectionRect: DOMRectReadOnly
+    ) => {
+      if (trackerRef.current) {
+        trackerRef.current.updatePageIntersection(
+          pageNumber,
+          intersectionRatio,
+          boundingClientRect,
+          intersectionRect
+        );
+      }
+    },
+    []
+  );
+
+  const flushTracking = useCallback(async () => {
     if (trackerRef.current && currentDoc) {
       await trackerRef.current.saveToStorage();
       await refreshSummary(currentDoc.meta.id);
     }
-  };
+  }, [currentDoc, refreshSummary]);
 
   return (
     <TrackingContext.Provider
@@ -108,6 +133,9 @@ export const TrackingProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         idleSeconds,
         currentPageNumber,
         completionPercentage,
+        pageMetrics,
+        setExplicitPage,
+        updatePageVisibility,
         updatePageIntersection,
         flushTracking,
       }}

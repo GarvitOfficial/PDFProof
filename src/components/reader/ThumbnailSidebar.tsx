@@ -122,3 +122,4 @@ export const ThumbnailSidebar: React.FC<ThumbnailSidebarProps> = ({
     </aside>
   );
 };
+

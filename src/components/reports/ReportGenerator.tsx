@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useDocuments } from '../../context/DocumentContext';
 import { useSettings } from '../../context/SettingsContext';
+import { useTracking } from '../../context/TrackingContext';
 import {
   computeReportDigest,
   encryptReportData,
@@ -10,6 +11,7 @@ import {
 import { generateReportPdf } from '../../services/reportPdf';
 import { storeReport } from '../../services/storage';
 import { ReportPayload, SignedCompletionReport } from '../../types/report';
+import { PageReadingMetrics } from '../../types/tracking';
 import { ReportPreview } from './ReportPreview';
 import { Button } from '../common/Button';
 import { Modal } from '../common/Modal';
@@ -26,6 +28,7 @@ import {
 export const ReportGenerator: React.FC = () => {
   const { currentDoc, currentSummary } = useDocuments();
   const { keyRecord, settings, updateSettings } = useSettings();
+  const { tracker } = useTracking();
 
   const [assignmentId, setAssignmentId] = useState('');
   const [readerIdentifier, setReaderIdentifier] = useState(settings.readerIdentifier || '');
@@ -69,9 +72,11 @@ export const ReportGenerator: React.FC = () => {
         updateSettings({ readerIdentifier });
       }
 
-      const pageMetricsArray = Object.values(currentSummary.pageMetrics).sort(
-        (a, b) => a.pageNumber - b.pageNumber
-      );
+      const activeSummary = tracker ? tracker.getSummary() : currentSummary;
+
+      const pageMetricsArray: PageReadingMetrics[] = (
+        Object.values(activeSummary.pageMetrics) as PageReadingMetrics[]
+      ).sort((a, b) => a.pageNumber - b.pageNumber);
 
       const payload: ReportPayload = {
         reportId,
@@ -92,16 +97,16 @@ export const ReportGenerator: React.FC = () => {
           notes: notes.trim() || undefined,
         },
         metrics: {
-          totalActiveSeconds: currentSummary.totalActiveSeconds,
-          pagesVisitedCount: currentSummary.pagesVisitedCount,
-          totalPages: currentSummary.totalPages,
-          completionPercentage: currentSummary.completionPercentage,
-          totalPageVisits: currentSummary.totalPageVisits,
-          sessionCount: currentSummary.sessionCount || 1,
-          averageSecondsPerPage: currentSummary.averageSecondsPerPage,
+          totalActiveSeconds: activeSummary.totalActiveSeconds,
+          pagesVisitedCount: activeSummary.pagesVisitedCount,
+          totalPages: activeSummary.totalPages,
+          completionPercentage: activeSummary.completionPercentage,
+          totalPageVisits: activeSummary.totalPageVisits,
+          sessionCount: activeSummary.sessionCount || 1,
+          averageSecondsPerPage: activeSummary.averageSecondsPerPage,
         },
         pageMetrics: pageMetricsArray,
-        sessions: currentSummary.sessions,
+        sessions: activeSummary.sessions,
         methodology: {
           activeTracking: 'IntersectionObserver + Page Visibility API + Inactivity Detector',
           timeEstimationNotice:
@@ -402,3 +407,4 @@ export const ReportGenerator: React.FC = () => {
     </div>
   );
 };
+

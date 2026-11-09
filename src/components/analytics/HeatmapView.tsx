@@ -139,3 +139,4 @@ export const HeatmapView: React.FC<HeatmapViewProps> = ({
     </div>
   );
 };
+

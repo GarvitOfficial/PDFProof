@@ -17,7 +17,7 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({
   onNavigateToReports,
 }) => {
   const { currentDoc, currentSummary } = useDocuments();
-  const { flushTracking } = useTracking();
+  const { flushTracking, tracker } = useTracking();
 
   if (!currentDoc || !currentSummary) {
     return (
@@ -29,6 +29,7 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({
     );
   }
 
+  const summary = tracker ? tracker.getSummary() : currentSummary;
   const { meta } = currentDoc;
 
   return (
@@ -80,23 +81,24 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({
       </div>
 
       {/* KPI Cards */}
-      <KpiCards summary={currentSummary} />
+      <KpiCards summary={summary} />
 
       {/* Engagement Heatmap */}
       <HeatmapView
         totalPages={meta.totalPages}
-        pageMetrics={currentSummary.pageMetrics}
+        pageMetrics={summary.pageMetrics}
         onSelectPage={() => onNavigateToReader()}
       />
 
       {/* Page-by-Page Granular Table */}
       <PageTable
         totalPages={meta.totalPages}
-        pageMetrics={currentSummary.pageMetrics}
+        pageMetrics={summary.pageMetrics}
       />
 
       {/* Timeline of Reading Sessions */}
-      <TimelineView sessions={currentSummary.sessions} />
+      <TimelineView sessions={summary.sessions} />
     </div>
   );
 };
+

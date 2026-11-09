@@ -60,6 +60,12 @@ export const PdfPageItem: React.FC<PdfPageItemProps> = ({
 
     return () => {
       observer.disconnect();
+      onIntersectionChange(
+        pageNumber,
+        0,
+        new DOMRectReadOnly(0, 0, 0, 0),
+        new DOMRectReadOnly(0, 0, 0, 0)
+      );
     };
   }, [pageNumber, onIntersectionChange]);
 
@@ -135,3 +141,4 @@ export const PdfPageItem: React.FC<PdfPageItemProps> = ({
     </div>
   );
 };
+

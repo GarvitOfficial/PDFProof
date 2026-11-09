@@ -300,3 +300,4 @@ export function useDocuments(): DocumentContextType {
   if (!ctx) throw new Error('useDocuments must be used within DocumentProvider');
   return ctx;
 }
+

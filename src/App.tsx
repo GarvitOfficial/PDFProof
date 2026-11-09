@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { SettingsProvider } from './context/SettingsContext';
 import { DocumentProvider } from './context/DocumentContext';
-import { TrackingProvider } from './context/TrackingContext';
+import { TrackingProvider, useTracking } from './context/TrackingContext';
 import { Header, ActiveTab } from './components/layout/Header';
 import { DocumentLibrary } from './components/library/DocumentLibrary';
 import { PdfViewer } from './components/reader/PdfViewer';
@@ -12,6 +12,14 @@ import { SettingsView } from './components/settings/SettingsView';
 
 const AppContent: React.FC = () => {
   const [activeTab, setActiveTab] = useState<ActiveTab>('library');
+  const { flushTracking } = useTracking();
+
+  const handleTabChange = async (tab: ActiveTab) => {
+    if (activeTab === 'reader') {
+      await flushTracking();
+    }
+    setActiveTab(tab);
+  };
 
   const handleOpenDocument = () => {
     setActiveTab('reader');
@@ -23,7 +31,7 @@ const AppContent: React.FC = () => {
 
   return (
     <div className="h-full flex flex-col bg-zinc-50 dark:bg-[#0c0d12] text-zinc-900 dark:text-zinc-100 overflow-hidden font-sans">
-      <Header activeTab={activeTab} onTabChange={setActiveTab} />
+      <Header activeTab={activeTab} onTabChange={handleTabChange} />
 
       <main className="flex-1 flex overflow-hidden">
         {activeTab === 'library' && (

@@ -78,3 +78,4 @@ The maximum percentage reached across the entire document lifecycle is persisted
 > PDFProof measures that a document page was rendered on screen, in a foreground browser window, with regular user pointer/keyboard activity.
 >
 > While this guarantees that the document was present and actively scrolled by a user, it **cannot** measure cognitive comprehension, retention, or whether the reader was diverted by another physical screen or conversation. Educational and compliance auditors must interpret dwell time as **opportunity for engagement**, not verified neurological retention.
+

@@ -16,3 +16,4 @@ export interface StoredDocument {
   meta: DocumentMeta;
   pdfBytes: ArrayBuffer;
 }
+

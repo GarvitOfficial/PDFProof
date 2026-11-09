@@ -20,7 +20,25 @@ export type TrackingStateCallback = (state: {
   currentPageNumber: number;
   totalPages: number;
   completionPercentage: number;
+  pageMetrics: Record<number, PageReadingMetrics>;
 }) => void;
+
+function createRect(x = 0, y = 0, width = 0, height = 0): DOMRectReadOnly {
+  if (typeof DOMRectReadOnly !== 'undefined') {
+    return new DOMRectReadOnly(x, y, width, height);
+  }
+  return {
+    x,
+    y,
+    width,
+    height,
+    top: y,
+    bottom: y + height,
+    left: x,
+    right: x + width,
+    toJSON: () => {},
+  } as DOMRectReadOnly;
+}
 
 export class ReadingTracker {
   private documentId: string;
@@ -33,8 +51,8 @@ export class ReadingTracker {
   private trackingState: TrackingState = 'active';
   private lastTickTime: number = performance.now();
   private lastInteractionTime: number = performance.now();
-  private tickIntervalId: number | null = null;
-  private flushTimeoutId: number | null = null;
+  private tickIntervalId: ReturnType<typeof setInterval> | null = null;
+  private flushTimeoutId: ReturnType<typeof setTimeout> | null = null;
 
   private pageVisibilities: Map<number, PageVisibilityEntry> = new Map();
   private activePageCandidate: number = 1;
@@ -99,6 +117,15 @@ export class ReadingTracker {
       };
     }
 
+    // Initialize Page 1 as visible initially
+    this.pageVisibilities.set(1, {
+      pageNumber: 1,
+      intersectionRatio: 1.0,
+      boundingClientRect: createRect(0, 0, 800, 1000),
+      intersectionRect: createRect(0, 0, 800, 1000),
+    });
+    this.recordPageVisit(1);
+
     this.initEventListeners();
     this.startTickLoop();
   }
@@ -121,6 +148,7 @@ export class ReadingTracker {
       currentPageNumber: this.activePageCandidate,
       totalPages: this.totalPages,
       completionPercentage: this.summary.completionPercentage,
+      pageMetrics: { ...this.summary.pageMetrics },
     };
     for (const cb of this.callbacks) {
       try {
@@ -182,7 +210,71 @@ export class ReadingTracker {
   }
 
   /**
-   * Called by IntersectionObserver in the UI whenever page intersection changes
+   * Explicitly sets the active page (for single page view mode or page jumps)
+   */
+  public setExplicitPage(pageNumber: number): void {
+    const p = Math.max(1, Math.min(this.totalPages, pageNumber));
+    this.pageVisibilities.clear();
+    this.pageVisibilities.set(p, {
+      pageNumber: p,
+      intersectionRatio: 1.0,
+      boundingClientRect: createRect(0, 0, 800, 1000),
+      intersectionRect: createRect(0, 0, 800, 1000),
+    });
+
+    this.activePageCandidate = p;
+    this.pageCandidateStartTime = performance.now();
+    this.recordPageVisit(p);
+    this.notify();
+  }
+
+  /**
+   * Updates page visibility ratio and scroll depth (called directly on scroll or by observer)
+   */
+  public updatePageVisibility(
+    pageNumber: number,
+    visibleRatio: number,
+    scrollDepth?: number
+  ): void {
+    if (visibleRatio <= 0.01) {
+      this.pageVisibilities.delete(pageNumber);
+    } else {
+      const existing = this.pageVisibilities.get(pageNumber);
+      this.pageVisibilities.set(pageNumber, {
+        pageNumber,
+        intersectionRatio: visibleRatio,
+        boundingClientRect: existing?.boundingClientRect || createRect(0, 0, 100, 100),
+        intersectionRect: existing?.intersectionRect || createRect(0, 0, 100, 100),
+      });
+
+      if (typeof scrollDepth === 'number' && scrollDepth > 0) {
+        const metric = this.summary.pageMetrics[pageNumber];
+        if (metric && scrollDepth > metric.maxScrollDepth) {
+          metric.maxScrollDepth = scrollDepth;
+        }
+      }
+    }
+
+    // Determine the page with highest visibility ratio
+    let highestRatio = 0;
+    let primaryPage = this.activePageCandidate;
+    for (const [pNum, entry] of this.pageVisibilities.entries()) {
+      if (entry.intersectionRatio > highestRatio) {
+        highestRatio = entry.intersectionRatio;
+        primaryPage = pNum;
+      }
+    }
+
+    if (primaryPage !== this.activePageCandidate && highestRatio > 0.05) {
+      this.activePageCandidate = primaryPage;
+      this.pageCandidateStartTime = performance.now();
+      this.recordPageVisit(primaryPage);
+      this.notify();
+    }
+  }
+
+  /**
+   * Called by IntersectionObserver whenever page intersection changes
    */
   public updatePageIntersection(
     pageNumber: number,
@@ -214,16 +306,17 @@ export class ReadingTracker {
       }
     }
 
-    if (primaryPage !== this.activePageCandidate) {
+    if (primaryPage !== this.activePageCandidate && highestRatio > 0.05) {
       this.activePageCandidate = primaryPage;
       this.pageCandidateStartTime = performance.now();
+      this.recordPageVisit(primaryPage);
+      this.notify();
     }
   }
 
   private calculatePageScrollDepth(pageNumber: number, rect: DOMRectReadOnly): void {
     if (rect.height <= 0) return;
-    const vh = window.innerHeight;
-    // Calculate how much of the page has been viewed as it scrolls through viewport
+    const vh = typeof window !== 'undefined' ? window.innerHeight : 800;
     const visibleBottom = Math.min(rect.height, vh - rect.top);
     const depthPct = Math.min(100, Math.max(0, Math.round((visibleBottom / rect.height) * 100)));
 
@@ -233,17 +326,7 @@ export class ReadingTracker {
     }
   }
 
-  private checkPageVisits(now: number): void {
-    // If user has focused on a candidate page for at least 800ms, register visit
-    if (this.activePageCandidate && this.activePageCandidate !== this.lastRecordedVisitPage) {
-      if (now - this.pageCandidateStartTime >= 800) {
-        this.recordPageVisit(this.activePageCandidate);
-        this.lastRecordedVisitPage = this.activePageCandidate;
-      }
-    }
-  }
-
-  private recordPageVisit(pageNumber: number): void {
+  public recordPageVisit(pageNumber: number): void {
     const metric = this.summary.pageMetrics[pageNumber] || {
       pageNumber,
       activeSeconds: 0,
@@ -271,7 +354,7 @@ export class ReadingTracker {
 
   private startTickLoop(): void {
     this.lastTickTime = performance.now();
-    this.tickIntervalId = window.setInterval(() => {
+    this.tickIntervalId = setInterval(() => {
       this.tick();
     }, 500);
   }
@@ -316,8 +399,6 @@ export class ReadingTracker {
           metric.activeSeconds += dt;
         }
       }
-
-      this.checkPageVisits(now);
     } else if (this.trackingState === 'idle') {
       this.currentSession.idleSeconds += dt;
     }
@@ -338,7 +419,7 @@ export class ReadingTracker {
     for (let i = 1; i <= this.totalPages; i++) {
       const metric = this.summary.pageMetrics[i];
       if (metric) {
-        if (metric.visitCount > 0 || metric.activeSeconds >= 3) {
+        if (metric.visitCount > 0 || metric.activeSeconds >= 1) {
           visitedCount++;
         }
         totalVisits += metric.visitCount;
@@ -358,7 +439,7 @@ export class ReadingTracker {
 
   private scheduleDebouncedFlush(): void {
     if (this.flushTimeoutId !== null) return;
-    this.flushTimeoutId = window.setTimeout(() => {
+    this.flushTimeoutId = setTimeout(() => {
       this.flushTimeoutId = null;
       this.saveToStorage();
     }, 4000);

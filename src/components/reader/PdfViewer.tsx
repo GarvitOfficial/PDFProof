@@ -11,13 +11,20 @@ import { PdfPageItem } from './PdfPageItem';
 import { AlertCircle, Loader2 } from 'lucide-react';
 
 export const PdfViewer: React.FC = () => {
-  const { currentDoc, currentSummary } = useDocuments();
-  const { updatePageIntersection, currentPageNumber, flushTracking } = useTracking();
+  const { currentDoc } = useDocuments();
+  const {
+    updatePageVisibility,
+    updatePageIntersection,
+    setExplicitPage,
+    currentPageNumber,
+    pageMetrics,
+  } = useTracking();
   const { settings } = useSettings();
 
   const [pdfDoc, setPdfDoc] = useState<pdfjsLib.PDFDocumentProxy | null>(null);
   const [scale, setScale] = useState<number>(1.15);
   const [viewMode, setViewMode] = useState<'continuous' | 'single'>(settings.readerViewMode);
+  const [singlePageNumber, setSinglePageNumber] = useState<number>(currentPageNumber || 1);
   const [isSidebarOpen, setIsSidebarOpen] = useState<boolean>(true);
   const [isSearchOpen, setIsSearchOpen] = useState<boolean>(false);
   const [isFullscreen, setIsFullscreen] = useState<boolean>(false);
@@ -59,48 +66,117 @@ export const PdfViewer: React.FC = () => {
   const handleFitWidth = useCallback(() => {
     if (!scrollContainerRef.current) return;
     const containerWidth = scrollContainerRef.current.clientWidth - 80;
-    // Standard PDF page width around 595pt
     const targetScale = Math.min(2.0, Math.max(0.6, containerWidth / 595));
     setScale(parseFloat(targetScale.toFixed(2)));
   }, []);
 
-  // Jump to specific page
-  const scrollToPage = useCallback(
+  const totalPages = currentDoc?.meta.totalPages || 1;
+
+  // Page navigation handler for both single and continuous modes
+  const handlePageChange = useCallback(
     (pageNumber: number) => {
+      const validPage = Math.max(1, Math.min(totalPages, pageNumber));
+
       if (viewMode === 'single') {
-        // In single page mode, just trigger intersection or tracking
-        updatePageIntersection(
-          pageNumber,
-          1.0,
-          new DOMRectReadOnly(0, 0, 600, 800),
-          new DOMRectReadOnly(0, 0, 600, 800)
-        );
+        setSinglePageNumber(validPage);
+        setExplicitPage(validPage);
         return;
       }
 
-      const targetEl = document.querySelector(`[data-page-number="${pageNumber}"]`);
+      // Continuous mode: scroll element into view
+      const targetEl = document.querySelector(`[data-page-number="${validPage}"]`);
       if (targetEl && scrollContainerRef.current) {
         targetEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
       }
     },
-    [viewMode, updatePageIntersection]
+    [viewMode, totalPages, setExplicitPage]
   );
+
+  // Switch view mode handler
+  const handleToggleViewMode = () => {
+    const nextMode = viewMode === 'continuous' ? 'single' : 'continuous';
+    setViewMode(nextMode);
+
+    if (nextMode === 'single') {
+      const p = currentPageNumber || 1;
+      setSinglePageNumber(p);
+      setExplicitPage(p);
+    }
+  };
+
+  // Continuous mode scroll watcher: calculates exact visibility & scroll depth on each page
+  useEffect(() => {
+    if (viewMode !== 'continuous' || !pdfDoc) return;
+    const scrollContainer = scrollContainerRef.current;
+    if (!scrollContainer) return;
+
+    let ticking = false;
+
+    const checkVisibility = () => {
+      ticking = false;
+      const containerRect = scrollContainer.getBoundingClientRect();
+      const pageElements = scrollContainer.querySelectorAll<HTMLElement>(
+        '.pdf-page-container[data-page-number]'
+      );
+
+      pageElements.forEach((el) => {
+        const pNum = parseInt(el.dataset.pageNumber || '1', 10);
+        const pageRect = el.getBoundingClientRect();
+
+        // Calculate vertical intersection between pageRect and containerRect
+        const visibleTop = Math.max(containerRect.top, pageRect.top);
+        const visibleBottom = Math.min(containerRect.bottom, pageRect.bottom);
+        const visibleHeight = Math.max(0, visibleBottom - visibleTop);
+        const visibleRatio = pageRect.height > 0 ? visibleHeight / pageRect.height : 0;
+
+        // Calculate scroll depth (how far down this page has been scrolled through)
+        const scrolledPastTop = Math.max(0, containerRect.top - pageRect.top);
+        const totalTraversed = scrolledPastTop + visibleHeight;
+        const depthPct =
+          pageRect.height > 0
+            ? Math.min(100, Math.max(0, Math.round((totalTraversed / pageRect.height) * 100)))
+            : 0;
+
+        updatePageVisibility(pNum, visibleRatio, depthPct);
+      });
+    };
+
+    const handleScroll = () => {
+      if (!ticking) {
+        window.requestAnimationFrame(checkVisibility);
+        ticking = true;
+      }
+    };
+
+    // Initial evaluation
+    const timer = setTimeout(checkVisibility, 100);
+
+    scrollContainer.addEventListener('scroll', handleScroll, { passive: true });
+    window.addEventListener('resize', handleScroll, { passive: true });
+
+    return () => {
+      clearTimeout(timer);
+      scrollContainer.removeEventListener('scroll', handleScroll);
+      window.removeEventListener('resize', handleScroll);
+    };
+  }, [pdfDoc, viewMode, updatePageVisibility]);
 
   // Keyboard navigation shortcuts
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      // Ignore if typing inside input or textarea
       if (['INPUT', 'TEXTAREA'].includes((e.target as HTMLElement)?.tagName)) {
         return;
       }
 
+      const activePage = viewMode === 'single' ? singlePageNumber : currentPageNumber;
+
       if (e.key === 'j' || e.key === 'ArrowRight') {
-        if (pdfDoc && currentPageNumber < pdfDoc.numPages) {
-          scrollToPage(currentPageNumber + 1);
+        if (activePage < totalPages) {
+          handlePageChange(activePage + 1);
         }
       } else if (e.key === 'k' || e.key === 'ArrowLeft') {
-        if (currentPageNumber > 1) {
-          scrollToPage(currentPageNumber - 1);
+        if (activePage > 1) {
+          handlePageChange(activePage - 1);
         }
       } else if (e.key === '/' || (e.metaKey && e.key === 'f')) {
         e.preventDefault();
@@ -112,7 +188,7 @@ export const PdfViewer: React.FC = () => {
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [pdfDoc, currentPageNumber, scrollToPage]);
+  }, [totalPages, currentPageNumber, singlePageNumber, viewMode, handlePageChange]);
 
   const toggleFullscreen = () => {
     if (!document.fullscreenElement) {
@@ -140,8 +216,7 @@ export const PdfViewer: React.FC = () => {
     );
   }
 
-  const totalPages = currentDoc.meta.totalPages;
-  const pageMetrics = currentSummary?.pageMetrics || {};
+  const activePageDisplay = viewMode === 'single' ? singlePageNumber : currentPageNumber;
 
   return (
     <div
@@ -150,21 +225,21 @@ export const PdfViewer: React.FC = () => {
     >
       {/* Reader Toolbar */}
       <ViewerToolbar
-        currentPage={currentPageNumber}
+        currentPage={activePageDisplay}
         totalPages={totalPages}
         scale={scale}
         viewMode={viewMode}
         isSidebarOpen={isSidebarOpen}
         isSearchOpen={isSearchOpen}
         isFullscreen={isFullscreen}
-        onPageChange={scrollToPage}
+        onPageChange={handlePageChange}
         onZoomIn={() => setScale((s) => Math.min(2.5, parseFloat((s + 0.15).toFixed(2))))}
         onZoomOut={() => setScale((s) => Math.max(0.6, parseFloat((s - 0.15).toFixed(2))))}
         onResetZoom={(level) => setScale(level)}
         onFitWidth={handleFitWidth}
         onToggleSidebar={() => setIsSidebarOpen(!isSidebarOpen)}
         onToggleSearch={() => setIsSearchOpen(!isSearchOpen)}
-        onToggleViewMode={() => setViewMode(viewMode === 'continuous' ? 'single' : 'continuous')}
+        onToggleViewMode={handleToggleViewMode}
         onToggleFullscreen={toggleFullscreen}
       />
 
@@ -173,7 +248,7 @@ export const PdfViewer: React.FC = () => {
         pdfDoc={pdfDoc}
         isOpen={isSearchOpen}
         onClose={() => setIsSearchOpen(false)}
-        onJumpToPage={scrollToPage}
+        onJumpToPage={handlePageChange}
       />
 
       {/* Main Reading Canvas & Sidebar Split */}
@@ -182,9 +257,9 @@ export const PdfViewer: React.FC = () => {
         <ThumbnailSidebar
           pdfDoc={pdfDoc}
           totalPages={totalPages}
-          currentPage={currentPageNumber}
+          currentPage={activePageDisplay}
           pageMetrics={pageMetrics}
-          onSelectPage={scrollToPage}
+          onSelectPage={handlePageChange}
           isOpen={isSidebarOpen}
         />
 
@@ -227,9 +302,9 @@ export const PdfViewer: React.FC = () => {
               ) : (
                 // Single page mode
                 <PdfPageItem
-                  key={currentPageNumber}
+                  key={singlePageNumber}
                   pdfDoc={pdfDoc}
-                  pageNumber={currentPageNumber}
+                  pageNumber={singlePageNumber}
                   scale={scale}
                   onIntersectionChange={updatePageIntersection}
                 />

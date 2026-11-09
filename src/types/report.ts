@@ -85,3 +85,4 @@ export interface VerificationResult {
   report?: SignedCompletionReport;
   documentHashMatched?: boolean; // If original PDF was supplied during verification
 }
+
