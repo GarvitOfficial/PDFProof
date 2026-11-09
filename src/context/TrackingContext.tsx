@@ -13,6 +13,7 @@ interface TrackingContextType {
   completionPercentage: number;
   pageMetrics: Record<number, PageReadingMetrics>;
   setExplicitPage: (pageNumber: number) => void;
+  setReaderActive: (active: boolean) => void;
   updatePageVisibility: (pageNumber: number, visibleRatio: number, scrollDepth?: number) => void;
   updatePageIntersection: (
     pageNumber: number,
@@ -89,6 +90,12 @@ export const TrackingProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     }
   }, []);
 
+  const setReaderActive = useCallback((active: boolean) => {
+    if (trackerRef.current) {
+      trackerRef.current.setReaderActive(active);
+    }
+  }, []);
+
   const updatePageVisibility = useCallback(
     (pageNumber: number, visibleRatio: number, scrollDepth?: number) => {
       if (trackerRef.current) {
@@ -135,6 +142,7 @@ export const TrackingProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         completionPercentage,
         pageMetrics,
         setExplicitPage,
+        setReaderActive,
         updatePageVisibility,
         updatePageIntersection,
         flushTracking,

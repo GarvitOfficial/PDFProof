@@ -75,4 +75,32 @@ describe('Reading Tracker Dwell Apportionment Algorithm', () => {
 
     tracker.destroy();
   });
+
+  it('strictly freezes reading time when paused (e.g. on analytics, settings, or library tabs)', async () => {
+    const tracker = new ReadingTracker('doc_test_pause', 2);
+
+    // Accumulate some reading time first
+    await new Promise((resolve) => setTimeout(resolve, 600));
+    const timeBeforePause = tracker.getSummary().totalActiveSeconds;
+    expect(timeBeforePause).toBeGreaterThan(0);
+
+    // User navigates away to the Analytics tab -> tracker is paused
+    tracker.setReaderActive(false);
+
+    // Wait another 1 second while paused
+    await new Promise((resolve) => setTimeout(resolve, 1000));
+    const timeDuringPause = tracker.getSummary().totalActiveSeconds;
+
+    // Time MUST NOT increase while on the analytics tab!
+    expect(timeDuringPause).toBe(timeBeforePause);
+
+    // User navigates back to the Reader tab -> tracker resumes
+    tracker.setReaderActive(true);
+    await new Promise((resolve) => setTimeout(resolve, 600));
+    const timeAfterResume = tracker.getSummary().totalActiveSeconds;
+
+    expect(timeAfterResume).toBeGreaterThan(timeBeforePause);
+
+    tracker.destroy();
+  });
 });

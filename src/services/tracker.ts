@@ -49,6 +49,7 @@ export class ReadingTracker {
   private summary: DocumentReadingSummary;
 
   private trackingState: TrackingState = 'active';
+  private isReaderActive: boolean = true;
   private lastTickTime: number = performance.now();
   private lastInteractionTime: number = performance.now();
   private tickIntervalId: ReturnType<typeof setInterval> | null = null;
@@ -159,10 +160,33 @@ export class ReadingTracker {
     }
   }
 
+  public pause(): void {
+    this.isReaderActive = false;
+    this.trackingState = 'paused';
+    this.notify();
+  }
+
+  public resume(): void {
+    this.isReaderActive = true;
+    this.lastInteractionTime = performance.now();
+    this.lastTickTime = performance.now();
+    this.trackingState = 'active';
+    this.notify();
+  }
+
+  public setReaderActive(active: boolean): void {
+    if (active) {
+      this.resume();
+    } else {
+      this.pause();
+    }
+  }
+
   private initEventListeners(): void {
     if (typeof window === 'undefined') return;
 
     const onActivity = () => {
+      if (!this.isReaderActive) return;
       this.lastInteractionTime = performance.now();
       if (this.trackingState === 'idle') {
         this.trackingState = 'active';
@@ -178,9 +202,11 @@ export class ReadingTracker {
     const onVisibilityChange = () => {
       if (document.hidden) {
         this.trackingState = 'hidden';
-      } else {
+      } else if (this.isReaderActive) {
         this.lastInteractionTime = performance.now();
         this.trackingState = 'active';
+      } else {
+        this.trackingState = 'paused';
       }
       this.notify();
     };
@@ -195,6 +221,7 @@ export class ReadingTracker {
     };
 
     const onFocus = () => {
+      if (!this.isReaderActive) return;
       this.lastInteractionTime = performance.now();
       this.trackingState = 'active';
       this.notify();
@@ -366,16 +393,16 @@ export class ReadingTracker {
     const dt = Math.max(0, (now - this.lastTickTime) / 1000);
     this.lastTickTime = now;
 
-    // Inactivity check
-    if (this.trackingState === 'active') {
+    // Inactivity check (only when reader is active)
+    if (this.isReaderActive && this.trackingState === 'active') {
       if (now - this.lastInteractionTime > this.inactivityTimeoutMs) {
         this.trackingState = 'idle';
         this.notify();
       }
     }
 
-    // Accumulate time based on state
-    if (this.trackingState === 'active') {
+    // Accumulate time based on state strictly when reader is active
+    if (this.isReaderActive && this.trackingState === 'active') {
       this.summary.totalActiveSeconds += dt;
       this.currentSession.activeReadingSeconds += dt;
 
@@ -399,7 +426,7 @@ export class ReadingTracker {
           metric.activeSeconds += dt;
         }
       }
-    } else if (this.trackingState === 'idle') {
+    } else if (this.isReaderActive && this.trackingState === 'idle') {
       this.currentSession.idleSeconds += dt;
     }
 

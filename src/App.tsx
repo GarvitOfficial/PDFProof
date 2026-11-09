@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { SettingsProvider } from './context/SettingsContext';
 import { DocumentProvider } from './context/DocumentContext';
 import { TrackingProvider, useTracking } from './context/TrackingContext';
@@ -12,20 +12,33 @@ import { SettingsView } from './components/settings/SettingsView';
 
 const AppContent: React.FC = () => {
   const [activeTab, setActiveTab] = useState<ActiveTab>('library');
-  const { flushTracking } = useTracking();
+  const { flushTracking, setReaderActive } = useTracking();
+
+  // Ensure reading timer strictly runs only when viewing the Reader tab
+  useEffect(() => {
+    setReaderActive(activeTab === 'reader');
+  }, [activeTab, setReaderActive]);
 
   const handleTabChange = async (tab: ActiveTab) => {
-    if (activeTab === 'reader') {
+    if (activeTab === 'reader' && tab !== 'reader') {
+      setReaderActive(false);
       await flushTracking();
+    } else if (tab === 'reader') {
+      setReaderActive(true);
     }
     setActiveTab(tab);
   };
 
   const handleOpenDocument = () => {
+    setReaderActive(true);
     setActiveTab('reader');
   };
 
-  const handleOpenAnalytics = () => {
+  const handleOpenAnalytics = async () => {
+    if (activeTab === 'reader') {
+      setReaderActive(false);
+      await flushTracking();
+    }
     setActiveTab('analytics');
   };
 
@@ -45,7 +58,10 @@ const AppContent: React.FC = () => {
 
         {activeTab === 'analytics' && (
           <AnalyticsView
-            onNavigateToReader={() => setActiveTab('reader')}
+            onNavigateToReader={() => {
+              setReaderActive(true);
+              setActiveTab('reader');
+            }}
             onNavigateToReports={() => setActiveTab('reports')}
           />
         )}
