@@ -1,15 +1,8 @@
 <div align="center">
 
-```
-  ██████╗ ██████╗ ███████╗██████╗ ██████╗  ██████╗  ██████╗ ███████╗
-  ██╔══██╗██╔══██╗██╔════╝██╔══██╗██╔══██╗██╔═══██╗██╔═══██╗██╔════╝
-  ██████╔╝██║  ██║█████╗  ██████╔╝██████╔╝██║   ██║██║   ██║█████╗  
-  ██╔═══╝ ██║  ██║██╔══╝  ██╔═══╝ ██╔══██╗██║   ██║██║   ██║██╔══╝  
-  ██║     ██████╔╝██║     ██║     ██║  ██║╚██████╔╝╚██████╔╝██║     
-  ╚═╝     ╚═════╝ ╚═╝     ╚═╝     ╚═╝  ╚═╝ ╚═════╝  ╚═════╝ ╚═╝     
-```
+<img src="./docs/assets/banner.svg" alt="PDFProof Banner" width="100%" />
 
-### Premium Client-Side PDF Reading Analytics & Cryptographic Verification
+<br />
 
 [![Privacy First](https://img.shields.io/badge/Privacy-100%25%20Client--Side-10b981?style=for-the-badge&logo=shield)](./SECURITY.md)
 [![Zero Telemetry](https://img.shields.io/badge/Telemetry-Zero%20External%20Calls-0ea5e9?style=for-the-badge)](./SECURITY.md)
@@ -30,27 +23,25 @@
 
 ## 📑 Table of Contents
 
-- [Architectural Philosophy](#-architectural-philosophy)
-- [System Architecture](#-system-architecture)
-- [Core Features](#-core-features)
-  - [1. Editorial Document Library & Instant Fingerprinting](#1-editorial-document-library--instant-fingerprinting)
-  - [2. Distraction-Free PDF Reader](#2-distraction-free-pdf-reader)
-  - [3. High-Fidelity Engagement Engine](#3-high-fidelity-engagement-engine)
-  - [4. Deep Analytics Dashboard & Heatmap](#4-deep-analytics-dashboard--heatmap)
-  - [5. Tri-Format Tamper-Evident Report Generator](#5-tri-format-tamper-evident-report-generator)
-  - [6. Zero-Trust Cryptographic Verification Suite](#6-zero-trust-cryptographic-verification-suite)
-  - [7. Privacy & Local Storage Manager](#7-privacy--local-storage-manager)
-- [Reading Tracking Invariants & Math](#-reading-tracking-invariants--math)
-  - [State Machine & Pause Guarantees](#state-machine--pause-guarantees)
-  - [Multi-Page Conservation Formula](#multi-page-conservation-formula)
-  - [Scroll Depth Metric](#scroll-depth-metric)
-- [Cryptographic Primitives](#-cryptographic-primitives)
-- [Keyboard Navigation](#-keyboard-navigation)
-- [Quick Start](#-quick-start)
-- [Automated Verification & Tests](#-automated-verification--tests)
-- [GitHub Pages Deployment](#-github-pages-deployment)
-- [Security Disclosure & Integrity Boundaries](#-security-disclosure--integrity-boundaries)
-- [Privacy Pledge](#-privacy-pledge)
+- [🏛 Architectural Philosophy](#-architectural-philosophy)
+- [🖼 Visual Tour & Interface Previews](#-visual-tour--interface-previews)
+  - [Distraction-Free PDF Reader](#1-distraction-free-pdf-reader)
+  - [Engagement Analytics & Page Heatmap](#2-engagement-analytics--page-heatmap)
+  - [Zero-Trust Cryptographic Verification Suite](#3-zero-trust-cryptographic-verification-suite)
+- [⚡ System Architecture & Pipelines](#-system-architecture--pipelines)
+- [🔄 Tracking Engine State Machine](#-tracking-engine-state-machine)
+- [🔐 Verification Protocol Sequence](#-verification-protocol-sequence)
+- [📐 Mathematical Tracking Invariants](#-mathematical-tracking-invariants)
+  - [1. Proportional Dwell Distribution (Zero Double-Counting)](#1-proportional-dwell-distribution-zero-double-counting)
+  - [2. Viewport Geometry & Scroll Depth Calculation](#2-viewport-geometry--scroll-depth-calculation)
+  - [3. Strict Navigation Pause Guarantee](#3-strict-navigation-pause-guarantee)
+- [🛡 Cryptographic Primitives](#-cryptographic-primitives)
+- [⌨ Keyboard Navigation](#-keyboard-navigation)
+- [🏁 Quick Start & Installation](#-quick-start--installation)
+- [🧪 Automated Unit Tests](#-automated-unit-tests)
+- [🌐 GitHub Pages Deployment](#-github-pages-deployment)
+- [⚖ Security & Ethical Disclosures](#-security--ethical-disclosures)
+- [🤝 Privacy Pledge](#-privacy-pledge)
 
 ---
 
@@ -60,7 +51,7 @@ PDFProof was engineered from first principles as an antidote to generic AI SaaS 
 
 | Generic Dashboard Anti-Patterns | PDFProof Editorial Standard |
 | :--- | :--- |
-| Purple/blue decorative gradients everywhere | Neutral stone and warm zinc editorial palette (`#faf9f5` / `#0c0d12`) |
+| Purple/blue decorative gradients and glassmorphism | Neutral stone and warm zinc editorial palette (`#faf9f5` / `#0c0d12`) |
 | Uncalibrated and fabricated metrics | Exact microsecond timing via `performance.now()` & geometric intersection |
 | Cloud surveillance beaconing & eye-tracking | **Zero telemetry**: 100% browser-resident sandbox evaluation |
 | Cluttered cards with nonfunctional controls | High information density, tabular monospace numerals, and keyboard shortcuts |
@@ -68,126 +59,143 @@ PDFProof was engineered from first principles as an antidote to generic AI SaaS 
 
 ---
 
-## ⚡ System Architecture
+## 🖼 Visual Tour & Interface Previews
 
-```
-┌─────────────────────────────────────────────────────────────────────────────┐
-│                             BROWSER SANDBOX                                 │
-│                                                                             │
-│  ┌────────────────────┐      ┌──────────────────┐     ┌──────────────────┐  │
-│  │   Uploaded PDF     │ ───► │  Raw Byte Array  │ ──► │  SHA-256 Finger- │  │
-│  │   or Sample Paper  │      │   ArrayBuffer    │     │  print Engine    │  │
-│  └────────────────────┘      └──────────────────┘     └────────┬─────────┘  │
-│                                                                │            │
-│  ┌─────────────────────────────────────────────────────────────▼─────────┐  │
-│  │                       READING TRACKER ENGINE                          │  │
-│  │  • Active Viewport Geometry (Visible Height / Page Ratio)              │  │
-│  │  • Multi-Page Proportional Dwell Distribution (No Double-Counting)    │  │
-│  │  • Page Visibility API (Suspends when tab hidden/minimized)          │  │
-│  │  • Inactivity Detector (Pauses when user idle for > 30s)             │  │
-│  │  • Navigation Context (Freezes when viewing Analytics/Settings tabs)  │  │
-│  └─────────────────────────────┬─────────────────────────────────────────┘  │
-│                                │ Live Page Metrics & Sessions               │
-│                                ▼                                            │
-│  ┌───────────────────────────────────────────────────────────────────────┐  │
-│  │                     INDEXEDDB PERSISTENCE (idb)                       │  │
-│  │    [documents]      [reading_summaries]      [signed_reports]         │  │
-│  └─────────────────────────────┬─────────────────────────────────────────┘  │
-│                                │                                            │
-│        ┌───────────────────────┴───────────────────────┐                    │
-│        ▼                                               ▼                    │
-│  ┌───────────────────────────┐           ┌───────────────────────────┐      │
-│  │ REPORT ATTESTATION ENGINE │           │ ZERO-TRUST AUDIT SUITE    │      │
-│  │ • Invariant Canonical JSON│           │ • Upload .json/.encrypted │      │
-│  │ • Ed25519 Signatures      │           │ • Recalculate SHA-256     │      │
-│  │ • PBKDF2 + AES-256-GCM    │           │ • Verify Ed25519 Sig      │      │
-│  │ • PDF Report (pdf-lib)    │           │ • Match original PDF hash │      │
-│  └───────────────────────────┘           └───────────────────────────┘      │
-└─────────────────────────────────────────────────────────────────────────────┘
+### 1. Distraction-Free PDF Reader
+
+The reading interface features a minimal toolbar, continuous vertical scrolling or single-page presentation, in-document search, and a collapsible thumbnails sidebar displaying live dwell timers (`14s`) and emerald visit status badges.
+
+<div align="center">
+  <img src="./docs/assets/preview-reader.svg" alt="PDFProof Reader Interface" width="100%" />
+</div>
+
+<br />
+
+### 2. Engagement Analytics & Page Heatmap
+
+The analytics dashboard provides executive KPI cards, an interactive page engagement heatmap grading reading dwell concentration across every document page, and a granular page-by-page table with scroll depth visual bars.
+
+<div align="center">
+  <img src="./docs/assets/preview-analytics.svg" alt="PDFProof Analytics & Heatmap" width="100%" />
+</div>
+
+<br />
+
+### 3. Zero-Trust Cryptographic Verification Suite
+
+Auditors and instructors can drag and drop any completion certificate (`.json` or `.encrypted`) to audit its mathematical authenticity. PDFProof recalculates the canonical SHA-256 digest, checks the Ed25519 digital signature, and compares original PDF bytes to confirm non-tampering.
+
+<div align="center">
+  <img src="./docs/assets/preview-verify.svg" alt="PDFProof Cryptographic Verification" width="100%" />
+</div>
+
+---
+
+## ⚡ System Architecture & Pipelines
+
+The following flowchart illustrates the entire client-side data pipeline from raw PDF ingestion to local evaluation, storage, and export:
+
+```mermaid
+flowchart TD
+    subgraph INGEST["1. Ingestion & Fingerprinting"]
+        A["PDF Document (.pdf)"] --> B["Compute Raw SHA-256 Fingerprint"]
+        B --> C["Check Against Expected Hash"]
+        C --> D["IndexedDB Secure Cache"]
+    end
+
+    subgraph READ["2. Distraction-Free Reader"]
+        D --> E["PDF.js Canvas Renderer (HiDPI)"]
+        E --> F["Exact Viewport Geometric Intersection"]
+    end
+
+    subgraph TRACK["3. Engagement Engine"]
+        F --> G["Multi-Page Proportional Dwell Distribution"]
+        G --> H{"State Evaluator"}
+        H -- "Reader Active + Interacting" --> I["Accumulate Active Dwell Time"]
+        H -- "Inactivity > 30s" --> J["IDLE State: Accumulate Idle Time"]
+        H -- "Tab Hidden / Minimized" --> K["HIDDEN State: Freeze Tracking"]
+        H -- "Viewing Analytics / Settings" --> L["PAUSED State: Freeze Tracking"]
+    end
+
+    subgraph REPORT["4. Cryptographic Attestation"]
+        I --> M["Deterministic Canonical JSON"]
+        M --> N["Compute SHA-256 Canonical Digest"]
+        N --> O["Sign with Ed25519 Web Crypto Key"]
+        O --> P["Export PDF / Signed JSON / AES-GCM Encrypted"]
+    end
+
+    subgraph AUDIT["5. Zero-Trust Verification"]
+        P --> Q["Upload Report & Optional PDF"]
+        Q --> R["Recalculate Canonical Digest"]
+        Q --> S["Verify Ed25519 Digital Signature"]
+        Q --> T["Compare PDF Byte-Stream Fingerprint"]
+    end
 ```
 
 ---
 
-## 🚀 Core Features
+## 🔄 Tracking Engine State Machine
 
-### 1. Editorial Document Library & Instant Fingerprinting
-- **Drag-and-Drop Ingestion**: Upload any `.pdf` document with instant drag-and-drop or file picker.
-- **SHA-256 Cryptographic Fingerprint**: Generated synchronously from original raw binary bytes before document parsing. Includes single-click copy and short-hash pills.
-- **Expected Hash Comparison**: Enter an instructor or auditor's required SHA-256 hash to immediately verify authentic copy vs. modified/tampered syllabus or exam paper.
-- **Instant Test Research Papers**: Two built-in academic monographs (*Zero-Knowledge Document Verification* & *RFC 8821 Standard*) generated dynamically with `pdf-lib` for one-click testing without finding local files.
+The reading tracker maintains a state machine with strict guarantees: reading time **only** accumulates when the user is actively reading the document in the foreground.
 
-### 2. Distraction-Free PDF Reader
-- **High-DPI PDF.js Rendering**: Pristine canvas text display with subpixel optimization for Retina displays.
-- **Dual View Modes**:
-  - *Continuous Vertical Scroll*: Natural document flow with real-time multi-page viewport presence tracking.
-  - *Single Page Presentation*: Dedicated distraction-free focus mode with instant page jumping.
-- **Collapsible Thumbnails Sidebar**: Displays lazy-rendered page previews, real-time page reading timers (`14s`), and emerald visit-status indicators.
-- **In-Document Search**: Interactive text search with occurrence counts, match navigation, and automatic jump.
-- **Retina Zoom Controls**: Zoom in, zoom out, 100% reset, and smart `Fit Width` geometry calculation.
+```mermaid
+stateDiagram-v2
+    [*] --> ACTIVE: Document Opened in Reader
 
-### 3. High-Fidelity Engagement Engine
-- **Deterministic Viewport Math**: Calculates exact pixel overlap between the reader container and every page canvas on every frame.
-- **Strict Anti-Double-Counting**: Active reading delta time is conserved and partitioned across visible pages proportional to their vertical exposure.
-- **Automatic Background Freezing**: Reading time stops the instant the browser tab is switched, minimized, or window focus is lost.
-- **Smart Pause on Other Tabs**: When navigating to the Analytics, Reports, or Settings views, the tracker automatically enters `PAUSED` mode—**reading time strictly halts and only resumes when returning to the Reader**.
-- **Configurable Idle Detector**: Configurable inactivity timeouts (15s, 30s, 45s, 60s, 120s) pause tracking if no mouse, keyboard, touch, or scroll inputs occur.
+    ACTIVE --> IDLE: Inactivity Timeout (Default: 30s)
+    IDLE --> ACTIVE: User Activity (Pointer / Key / Wheel)
 
-### 4. Deep Analytics Dashboard & Heatmap
-- **Executive KPI Cards**: Active reading duration, document completion percentage, visited page tally, total visits/revisits, distinct sessions, and average dwell time per page.
-- **Page Engagement Heatmap**: Color-graded intensity grid visualizing dwell time concentration across the entire document. Hover any cell to inspect exact dwell time, visits, and scroll depth.
-- **Granular Page Table**: Sortable table with active time, visit count, maximum scroll depth (with visual completion bar), first visit timestamp, and last visit timestamp.
-- **Session Audit Timeline**: Chronological log of reading sessions capturing viewport dimensions, active time vs. idle time, and visited page sequences.
+    ACTIVE --> HIDDEN: Tab Blurred / Document Hidden
+    HIDDEN --> ACTIVE: Document Foreground & Focused
 
-### 5. Tri-Format Tamper-Evident Report Generator
-Generates three export formats certified by the reader's browser-resident cryptographic identity:
-1. `completion-report.pdf`: An A4 document certificate rendered client-side using `pdf-lib` featuring document metadata, engagement summary cards, page breakdown tables, and an auditable cryptographic proof block.
-2. `completion-report.json`: Deterministically canonicalized JSON report with embedded SHA-256 digest and Ed25519 digital signature.
-3. `completion-report.encrypted`: Password-protected container encrypted with **AES-256-GCM** using a 256-bit key derived via **PBKDF2** (100,000 rounds of SHA-256) and a 96-bit random nonce.
+    ACTIVE --> PAUSED: Navigate to Analytics / Settings / Reports
+    IDLE --> PAUSED: Navigate to Analytics / Settings / Reports
+    PAUSED --> ACTIVE: Return to Reader View
 
-### 6. Zero-Trust Cryptographic Verification Suite
-- **Report Audit**: Drop any generated `.json` or `.encrypted` file to audit its mathematical authenticity.
-- **Passphrase Decryption**: Seamlessly prompts for passphrase when an encrypted envelope is detected, decrypting in memory and verifying GCM authentication tags.
-- **Digest Recalculation**: Reconstructs canonical JSON representation, recalculates SHA-256 digest, and flags if even a single byte or decimal has been tampered with.
-- **Ed25519 Signature Verification**: Validates the cryptographic signature against the embedded public key using native Web Crypto.
-- **Original PDF Dual-Check**: Upload the original PDF alongside the report to confirm byte-for-byte that the report corresponds to that exact file.
-
-### 7. Privacy & Local Storage Manager
-- **Local-Only Storage**: All documents, summaries, and keypairs reside in the origin's private IndexedDB database (`pdfproof_local_db`).
-- **Quota & Storage Inspection**: View current storage consumption and browser storage quota.
-- **Cryptographic Keypair Management**: Inspect your unique Ed25519 public key fingerprint, export Base64 public key, or regenerate identities.
-- **One-Click Privacy Wipe**: Purge all local documents, reading logs, and keys with complete eradication.
+    ACTIVE --> [*]: Document Closed / Unloaded
+    PAUSED --> [*]: Document Closed / Unloaded
+```
 
 ---
 
-## 📐 Reading Tracking Invariants & Math
+## 🔐 Verification Protocol Sequence
 
-### State Machine & Pause Guarantees
+The cryptographic verification process confirms mathematical integrity, document binding, and non-repudiation without custodial authority:
 
+```mermaid
+sequenceDiagram
+    autonumber
+    actor Reader as User / Student
+    participant Engine as PDFProof Tracking Engine
+    participant Crypto as Web Crypto API (Subtle)
+    participant Store as Local IndexedDB
+    actor Auditor as Auditor / Instructor
+
+    Reader->>Engine: Opens PDF Document
+    Engine->>Crypto: Compute SHA-256(ArrayBuffer)
+    Crypto-->>Engine: Document Fingerprint
+    Reader->>Engine: Reads document pages (continuous scroll)
+    Engine->>Engine: Compute visible height & distribute dwell time
+    Engine->>Store: Persist page metrics & session history
+    Reader->>Engine: Request Completion Certificate
+    Engine->>Crypto: Canonicalize JSON & compute digest
+    Engine->>Crypto: Sign digest with Ed25519 Private Key
+    Crypto-->>Engine: Digital Signature
+    Engine->>Reader: Export completion-report (.pdf / .json / .encrypted)
+    
+    Note over Auditor,Engine: Verification Phase (Offline / Client-Side)
+    Auditor->>Engine: Uploads report + authentic PDF
+    Engine->>Crypto: Recalculate canonical SHA-256 digest
+    Engine->>Crypto: Verify Ed25519 Signature against Public Key
+    Engine->>Crypto: Compare original PDF SHA-256 hash
+    Engine-->>Auditor: Mathematical Integrity Confirmed ✓
 ```
-              ┌─────────────── Document Foreground / Input ──────────────┐
-              │                                                          │
-              ▼                                                          │
-       ┌──────────────┐         Inactivity Timeout (τ)            ┌──────────────┐
-       │    ACTIVE    │ ────────────────────────────────────────► │     IDLE     │
-       │ (Accumulate) │ ◄──────────────────────────────────────── │ (Accumulate  │
-       └──────┬───────┘               User Input                  │  Idle Time)  │
-              │                                                   └──────────────┘
-              │ Tab Hidden / Blur
-              ▼
-       ┌──────────────┐
-       │    HIDDEN    │ ◄─── Document hidden or browser minimized
-       │   (Frozen)   │
-       └──────────────┘
-              ▲
-              │ Navigate to Analytics / Settings / Library
-              ▼
-       ┌──────────────┐
-       │    PAUSED    │ ◄─── Reader view unmounted or tab inactive
-       │   (Frozen)   │      Zero accumulation of active or idle time
-       └──────────────┘
-```
 
-### Multi-Page Conservation Formula
+---
+
+## 📐 Mathematical Tracking Invariants
+
+### 1. Proportional Dwell Distribution (Zero Double-Counting)
 
 When multiple pages appear simultaneously in the viewport during continuous vertical scrolling, wall-clock active time $\Delta t$ is distributed according to each page's intersection weight $\alpha_i \in [0, 1]$:
 
@@ -199,15 +207,19 @@ $$\sum_{i=1}^N \Delta t_i = \Delta t \times \sum_{i=1}^N \frac{\alpha_i}{W} = \D
 
 **Mathematical Proof of Time Conservation**: Dwell time is apportioned proportionally with zero double-counting.
 
-### Scroll Depth Metric
+### 2. Viewport Geometry & Scroll Depth Calculation
 
 For each page $i$, vertical progression is evaluated:
 
 $$\delta_{\text{scroll}}(p_i) = \min\left(100, \max\left(0, \left\lfloor \frac{\min(H_i, y_{\text{viewport\_bottom}} - y_{\text{top}}(p_i))}{H_i} \times 100 \right\rfloor \right)\right)$$
 
+### 3. Strict Navigation Pause Guarantee
+
+Active reading time increments **exclusively** when viewing the `reader` tab. Navigating to `analytics`, `settings`, `reports`, or `library` automatically triggers `setReaderActive(false)`, freezing dwell time until the user returns to reading.
+
 ---
 
-## 🔒 Cryptographic Primitives
+## 🛡 Cryptographic Primitives
 
 PDFProof utilizes the **W3C Web Cryptography API** (`window.crypto.subtle`) exclusively:
 
@@ -236,7 +248,7 @@ The PDF Reader provides fast keyboard shortcuts inspired by vim and professional
 
 ---
 
-## 🏁 Quick Start
+## 🏁 Quick Start & Installation
 
 ### Prerequisites
 - **Node.js** v18+ (tested on Node v20 & v26)
@@ -268,7 +280,7 @@ Optimized assets with relative paths are generated in `dist/`.
 
 ---
 
-## 🧪 Automated Verification & Tests
+## 🧪 Automated Unit Tests
 
 The project includes 13 Vitest unit tests verifying cryptographic rigor, canonical serialization, and dwell-time invariants:
 
@@ -311,7 +323,7 @@ A production-ready GitHub Actions workflow is provided at `.github/workflows/dep
 
 ---
 
-## 🛡 Security Disclosure & Integrity Boundaries
+## ⚖ Security & Ethical Disclosures
 
 > [!IMPORTANT]
 > **Ethical & Mathematical Disclosures:**
