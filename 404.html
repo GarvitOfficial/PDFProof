@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>PDFProof — Redirecting</title>
+    <script>
+      const segment = location.pathname.split('/')[1];
+      const base = segment && !segment.includes('.') ? '/' + segment + '/' : '/';
+      location.replace(base);
+    </script>
+  </head>
+  <body>
+  </body>
+</html>
