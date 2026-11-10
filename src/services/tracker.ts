@@ -474,6 +474,7 @@ export class ReadingTracker {
 
   public async saveToStorage(): Promise<void> {
     if (!this.documentId) return;
+    if (typeof window === 'undefined' || typeof indexedDB === 'undefined') return;
     try {
       // Merge current session into sessions list
       const sessionCopy = { ...this.currentSession };
